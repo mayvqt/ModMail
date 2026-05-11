@@ -1,3 +1,5 @@
 .idea/
 .gocache/
 .gomodcache/
+cmd/bot/.env
+cmd/bot/bot
