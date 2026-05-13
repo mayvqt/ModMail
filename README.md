@@ -68,7 +68,7 @@ go run ./cmd/bot
 docker compose up --build -d
 ```
 
-Data is stored in `./data` by default.
+Data is stored in the `modmail-data` Docker volume by default.
 
 ## Behavior Notes
 
@@ -76,9 +76,10 @@ Data is stored in `./data` by default.
 - Closing a ticket changes DB status to `closed`, not deleted.
 - Reopen only works when no other open ticket exists for that user.
 - Transcript export currently includes up to the latest 500 messages in the ticket channel.
+- Docker Compose stores SQLite data in the `modmail-data` named volume. To use a host bind mount instead, make sure the host directory is writable by the non-root container user.
 
 ## Testing
 
 ```bash
-go test ./...
+GOCACHE=/tmp/go-build GOMODCACHE=/tmp/go-mod go test ./...
 ```

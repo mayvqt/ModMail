@@ -18,6 +18,7 @@ import (
 const (
 	closeCommandName  = "close"
 	reopenCommandName = "reopen"
+	maxMessageLength  = 2000
 )
 
 type Service struct {
@@ -107,14 +108,14 @@ func (s *Service) onMessageCreate(dg *discordgo.Session, m *discordgo.MessageCre
 		return
 	}
 
-	if strings.HasPrefix(m.Content, s.cfg.CommandPrefix+closeCommandName) {
+	if isCommand(m.Content, s.cfg.CommandPrefix, closeCommandName) {
 		if err := s.handleClose(dg, m); err != nil {
 			log.Printf("handle close: %v", err)
 			_ = s.sendMessageWithRetry(dg, m.ChannelID, "Could not close this ticket.")
 		}
 		return
 	}
-	if strings.HasPrefix(m.Content, s.cfg.CommandPrefix+reopenCommandName) {
+	if isCommand(m.Content, s.cfg.CommandPrefix, reopenCommandName) {
 		if err := s.handleReopen(dg, m); err != nil {
 			log.Printf("handle reopen: %v", err)
 			_ = s.sendMessageWithRetry(dg, m.ChannelID, "Could not reopen this ticket.")
@@ -351,16 +352,22 @@ func (s *Service) buildTranscript(dg *discordgo.Session, channelID string) ([]by
 }
 
 func (s *Service) sendMessageWithRetry(dg *discordgo.Session, channelID, content string) error {
-	var lastErr error
-	for i := 0; i < 3; i++ {
-		_, err := dg.ChannelMessageSend(channelID, content)
-		if err == nil {
-			return nil
+	for _, chunk := range splitDiscordMessage(content) {
+		var lastErr error
+		for i := 0; i < 3; i++ {
+			_, err := dg.ChannelMessageSend(channelID, chunk)
+			if err == nil {
+				lastErr = nil
+				break
+			}
+			lastErr = err
+			time.Sleep(time.Duration(i+1) * 250 * time.Millisecond)
 		}
-		lastErr = err
-		time.Sleep(time.Duration(i+1) * 250 * time.Millisecond)
+		if lastErr != nil {
+			return lastErr
+		}
 	}
-	return lastErr
+	return nil
 }
 
 func userTag(u *discordgo.User) string {
@@ -388,4 +395,38 @@ func sanitizeChannelName(s string) string {
 		out = out[:90]
 	}
 	return out
+}
+
+func isCommand(content, prefix, name string) bool {
+	content = strings.TrimSpace(content)
+	cmd := prefix + name
+	if content == cmd {
+		return true
+	}
+	return strings.HasPrefix(content, cmd+" ")
+}
+
+func splitDiscordMessage(content string) []string {
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return nil
+	}
+
+	var chunks []string
+	for len(content) > maxMessageLength {
+		splitAt := strings.LastIndex(content[:maxMessageLength], "\n")
+		if splitAt < 1 {
+			splitAt = strings.LastIndex(content[:maxMessageLength], " ")
+		}
+		if splitAt < 1 {
+			splitAt = maxMessageLength
+		}
+
+		chunks = append(chunks, strings.TrimSpace(content[:splitAt]))
+		content = strings.TrimSpace(content[splitAt:])
+	}
+	if content != "" {
+		chunks = append(chunks, content)
+	}
+	return chunks
 }

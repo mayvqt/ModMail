@@ -2,6 +2,7 @@ package storage
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -37,5 +38,15 @@ func TestOpenTicketUniquenessAndReopen(t *testing.T) {
 	}
 	if tk.Status != "open" {
 		t.Fatalf("status = %q, want open", tk.Status)
+	}
+}
+
+func TestSQLiteDSNUsesFileURIPath(t *testing.T) {
+	dsn := sqliteDSN("/tmp/modmail/test.sqlite")
+	if !strings.HasPrefix(dsn, "file:///tmp/modmail/test.sqlite?") {
+		t.Fatalf("sqliteDSN() = %q, want absolute file URI", dsn)
+	}
+	if strings.Contains(dsn, "%2Ftmp") {
+		t.Fatalf("sqliteDSN() = %q, path should not be slash-escaped", dsn)
 	}
 }

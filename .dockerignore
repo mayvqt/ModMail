@@ -1,0 +1,16 @@
+.git
+.github
+.agents
+.codex
+.env
+.env.*
+!.env.example
+data
+*.sqlite
+*.sqlite-*
+.gocache
+.gomodcache
+tmp
+Dockerfile
+docker-compose*.yml
+README.md

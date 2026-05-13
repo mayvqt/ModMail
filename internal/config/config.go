@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -21,16 +22,19 @@ type Config struct {
 
 func Load() (Config, error) {
 	cfg := Config{
-		DiscordToken:    os.Getenv("DISCORD_TOKEN"),
-		GuildID:         os.Getenv("GUILD_ID"),
-		StaffCategoryID: os.Getenv("STAFF_CATEGORY_ID"),
-		StaffRoleID:     os.Getenv("STAFF_ROLE_ID"),
-		LogChannelID:    os.Getenv("LOG_CHANNEL_ID"),
+		DiscordToken:    strings.TrimSpace(os.Getenv("DISCORD_TOKEN")),
+		GuildID:         strings.TrimSpace(os.Getenv("GUILD_ID")),
+		StaffCategoryID: strings.TrimSpace(os.Getenv("STAFF_CATEGORY_ID")),
+		StaffRoleID:     strings.TrimSpace(os.Getenv("STAFF_ROLE_ID")),
+		LogChannelID:    strings.TrimSpace(os.Getenv("LOG_CHANNEL_ID")),
 		DBPath:          getenv("DB_PATH", "/data/modmail.sqlite"),
 		CommandPrefix:   getenv("COMMAND_PREFIX", "!"),
-		EnableSlash:     getenvBool("ENABLE_SLASH_COMMANDS", true),
 	}
 	var err error
+	cfg.EnableSlash, err = getenvBool("ENABLE_SLASH_COMMANDS", true)
+	if err != nil {
+		return cfg, err
+	}
 	cfg.AutoDeleteAfter, err = getenvDuration("AUTO_DELETE_CLOSED_TICKET_AFTER", "0s")
 	if err != nil {
 		return cfg, err
@@ -45,26 +49,32 @@ func Load() (Config, error) {
 	if cfg.StaffCategoryID == "" {
 		return cfg, fmt.Errorf("STAFF_CATEGORY_ID is required")
 	}
+	if cfg.CommandPrefix == "" {
+		return cfg, fmt.Errorf("COMMAND_PREFIX cannot be empty")
+	}
+	if cfg.AutoDeleteAfter < 0 {
+		return cfg, fmt.Errorf("AUTO_DELETE_CLOSED_TICKET_AFTER cannot be negative")
+	}
 	return cfg, nil
 }
 
 func getenv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
+	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
 		return v
 	}
 	return fallback
 }
 
-func getenvBool(key string, fallback bool) bool {
-	v := os.Getenv(key)
+func getenvBool(key string, fallback bool) (bool, error) {
+	v := strings.TrimSpace(os.Getenv(key))
 	if v == "" {
-		return fallback
+		return fallback, nil
 	}
 	parsed, err := strconv.ParseBool(v)
 	if err != nil {
-		return fallback
+		return false, fmt.Errorf("%s is invalid boolean: %w", key, err)
 	}
-	return parsed
+	return parsed, nil
 }
 
 func getenvDuration(key, fallback string) (time.Duration, error) {

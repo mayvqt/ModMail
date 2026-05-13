@@ -30,3 +30,38 @@ func TestUserTag(t *testing.T) {
 		t.Fatalf("userTag modern = %q", modern)
 	}
 }
+
+func TestIsCommand(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		want    bool
+	}{
+		{name: "exact", content: "!close", want: true},
+		{name: "with reason", content: "!close resolved", want: true},
+		{name: "trimmed", content: "  !close  ", want: true},
+		{name: "prefix only", content: "!closeplease", want: false},
+		{name: "wrong command", content: "!reopen", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isCommand(tt.content, "!", "close"); got != tt.want {
+				t.Fatalf("isCommand(%q) = %v, want %v", tt.content, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSplitDiscordMessage(t *testing.T) {
+	msg := strings.Repeat("a", maxMessageLength) + "\n" + strings.Repeat("b", 10)
+	chunks := splitDiscordMessage(msg)
+	if len(chunks) != 2 {
+		t.Fatalf("len(chunks) = %d, want 2", len(chunks))
+	}
+	for i, chunk := range chunks {
+		if len(chunk) > maxMessageLength {
+			t.Fatalf("chunk %d length = %d, want <= %d", i, len(chunk), maxMessageLength)
+		}
+	}
+}

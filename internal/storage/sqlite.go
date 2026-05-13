@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -28,14 +30,16 @@ type Store struct {
 var ErrOpenTicketExists = errors.New("open ticket already exists for user")
 
 func Open(path string) (*Store, error) {
-	dsn := fmt.Sprintf(
-		"file:%s?_pragma=%s&_pragma=%s&_pragma=%s&_pragma=%s",
-		url.PathEscape(path),
-		url.QueryEscape("journal_mode(WAL)"),
-		url.QueryEscape("synchronous(NORMAL)"),
-		url.QueryEscape("busy_timeout(5000)"),
-		url.QueryEscape("foreign_keys(ON)"),
-	)
+	if path == "" {
+		return nil, errors.New("sqlite path is required")
+	}
+	if path != ":memory:" {
+		if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+			return nil, fmt.Errorf("create sqlite directory: %w", err)
+		}
+	}
+
+	dsn := sqliteDSN(path)
 
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
@@ -57,6 +61,24 @@ func Open(path string) (*Store, error) {
 		return nil, err
 	}
 	return s, nil
+}
+
+func sqliteDSN(path string) string {
+	if path == ":memory:" {
+		return "file::memory:?_pragma=foreign_keys(ON)"
+	}
+
+	values := url.Values{}
+	values.Add("_pragma", "journal_mode(WAL)")
+	values.Add("_pragma", "synchronous(NORMAL)")
+	values.Add("_pragma", "busy_timeout(5000)")
+	values.Add("_pragma", "foreign_keys(ON)")
+
+	return (&url.URL{
+		Scheme:   "file",
+		Path:     path,
+		RawQuery: values.Encode(),
+	}).String()
 }
 
 func (s *Store) Close() error {
