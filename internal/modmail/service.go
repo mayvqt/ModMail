@@ -412,7 +412,7 @@ func (s *Service) handleUserDM(dg *discordgo.Session, m *discordgo.MessageCreate
 	if block, err := s.store.GetBlockedUser(m.Author.ID); err == nil {
 		s.log.Info("blocked user attempted modmail", "user_id", m.Author.ID, "reason", block.Reason)
 		return s.sendMessageWithRetry(dg, m.ChannelID, "You are currently blocked from opening modmail tickets.")
-	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	} else if !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
 

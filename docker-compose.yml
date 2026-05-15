@@ -2,12 +2,10 @@ services:
   modmail:
     build:
       context: .
-    image: ${IMAGE_REPOSITORY:-modmail}:${IMAGE_TAG:-local}
+    image: ghcr.io/mayvqt/modmail:latest
     container_name: modmail
     restart: unless-stopped
     init: true
-    env_file:
-      - .env
     environment:
       DB_PATH: /data/modmail.sqlite
     read_only: true
