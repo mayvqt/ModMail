@@ -4,6 +4,7 @@ services:
       context: .
     image: ghcr.io/mayvqt/modmail:latest
     container_name: modmail
+    user: ${PUID:-99}:${PGID:-100}
     restart: unless-stopped
     init: true
     environment:
