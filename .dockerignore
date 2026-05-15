@@ -11,6 +11,9 @@ data
 .gocache
 .gomodcache
 tmp
-Dockerfile
 docker-compose*.yml
 README.md
+.DS_Store
+coverage.out
+dist
+bin

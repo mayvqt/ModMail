@@ -2,7 +2,7 @@ services:
   modmail:
     build:
       context: .
-    image: modmail:local
+    image: ${IMAGE_REPOSITORY:-modmail}:${IMAGE_TAG:-local}
     container_name: modmail
     restart: unless-stopped
     init: true
@@ -18,8 +18,5 @@ services:
     security_opt:
       - no-new-privileges:true
     volumes:
-      - modmail-data:/data
+      - ${MODMAIL_DATA_DIR:-./data}:/data
     stop_grace_period: 20s
-
-volumes:
-  modmail-data:

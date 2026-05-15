@@ -16,6 +16,9 @@ type Config struct {
 	LogChannelID    string
 	DBPath          string
 	CommandPrefix   string
+	StaffIdentity   string
+	StaffReplyLabel string
+	LogLevel        string
 	EnableSlash     bool
 	AutoDeleteAfter time.Duration
 }
@@ -29,6 +32,9 @@ func Load() (Config, error) {
 		LogChannelID:    strings.TrimSpace(os.Getenv("LOG_CHANNEL_ID")),
 		DBPath:          getenv("DB_PATH", "/data/modmail.sqlite"),
 		CommandPrefix:   getenv("COMMAND_PREFIX", "!"),
+		StaffIdentity:   strings.ToLower(getenv("STAFF_IDENTITY", "anonymous")),
+		StaffReplyLabel: getenv("STAFF_REPLY_LABEL", "Moderator"),
+		LogLevel:        strings.ToLower(getenv("LOG_LEVEL", "info")),
 	}
 	var err error
 	cfg.EnableSlash, err = getenvBool("ENABLE_SLASH_COMMANDS", true)
@@ -51,6 +57,16 @@ func Load() (Config, error) {
 	}
 	if cfg.CommandPrefix == "" {
 		return cfg, fmt.Errorf("COMMAND_PREFIX cannot be empty")
+	}
+	switch cfg.StaffIdentity {
+	case "anonymous", "named", "role":
+	default:
+		return cfg, fmt.Errorf("STAFF_IDENTITY must be anonymous, named, or role")
+	}
+	switch cfg.LogLevel {
+	case "debug", "info", "warn", "error":
+	default:
+		return cfg, fmt.Errorf("LOG_LEVEL must be debug, info, warn, or error")
 	}
 	if cfg.AutoDeleteAfter < 0 {
 		return cfg, fmt.Errorf("AUTO_DELETE_CLOSED_TICKET_AFTER cannot be negative")
